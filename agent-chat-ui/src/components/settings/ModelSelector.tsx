@@ -25,6 +25,8 @@ export function ModelSelector({ currentModel, onModelChange, ollamaUrl }: ModelS
   const [isPulling, setIsPulling] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [modelToPull, setModelToPull] = useState("");
+  const [pullProgress, setPullProgress] = useState<number>(0);
+  const [pullStatus, setPullStatus] = useState<string>("");
 
   // Ollama API URL (기본값: docker-compose의 ollama 서비스)
   const apiUrl = ollamaUrl || "http://10.40.217.195:11434";
@@ -52,23 +54,59 @@ export function ModelSelector({ currentModel, onModelChange, ollamaUrl }: ModelS
     }
 
     setIsPulling(true);
+    setPullProgress(0);
+    setPullStatus("다운로드 준비 중...");
     toast.info(`${modelToPull} 다운로드를 시작합니다...`);
 
     try {
       const response = await fetch(`${apiUrl}/api/pull`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: modelToPull, stream: false }),
+        body: JSON.stringify({ name: modelToPull, stream: true }),
       });
 
       if (!response.ok) throw new Error("Failed to pull model");
 
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split("\n").filter((line) => line.trim());
+
+          for (const line of lines) {
+            try {
+              const data = JSON.parse(line);
+
+              // 진행률 계산
+              if (data.total && data.completed) {
+                const progress = Math.round((data.completed / data.total) * 100);
+                setPullProgress(progress);
+                setPullStatus(data.status || "다운로드 중...");
+              } else if (data.status) {
+                setPullStatus(data.status);
+              }
+            } catch (e) {
+              // JSON 파싱 오류 무시
+            }
+          }
+        }
+      }
+
       toast.success(`${modelToPull} 다운로드 완료!`);
       setModelToPull("");
+      setPullProgress(0);
+      setPullStatus("");
       await fetchModels();
     } catch (error) {
       console.error("Error pulling model:", error);
       toast.error("모델 다운로드 실패");
+      setPullProgress(0);
+      setPullStatus("");
     } finally {
       setIsPulling(false);
     }
@@ -161,6 +199,23 @@ export function ModelSelector({ currentModel, onModelChange, ollamaUrl }: ModelS
             {isPulling ? "다운로드 중..." : "다운로드"}
           </Button>
         </div>
+
+        {/* 다운로드 진행률 표시 */}
+        {isPulling && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">{pullStatus}</span>
+              <span className="font-medium">{pullProgress}%</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-primary h-full transition-all duration-300 ease-out"
+                style={{ width: `${pullProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         <p className="text-xs text-muted-foreground">
           추천: llama3.2:3b, llama3.2:1b, gemma2:2b
         </p>
