@@ -23,6 +23,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useQueryState } from "nuqs";
 import { ConnectionDialog } from "./ConnectionDialog";
+import { ModelSelector } from "./ModelSelector";
 
 export function SettingsDialog() {
   const { userSettings, updateUserSettings, resetUserSettings } = useSettings();
@@ -379,6 +380,19 @@ export function SettingsDialog() {
                     const schemaObj = schema as { default?: unknown; type?: string; title?: string; description?: string; enum?: unknown[] };
                     const currentValue = configValues[key] ?? schemaObj.default;
                     const fieldType = schemaObj.type;
+
+                    // 모델 선택 필드는 ModelSelector 컴포넌트로 대체
+                    if (key === 'model') {
+                      return (
+                        <div key={key} className="space-y-2">
+                          <ModelSelector
+                            currentModel={String(currentValue ?? schemaObj.default ?? 'llama3.2:3b')}
+                            onModelChange={(model) => handleConfigChange(key, model)}
+                            ollamaUrl={apiUrl ? apiUrl.replace(':2024', ':11434') : undefined}
+                          />
+                        </div>
+                      );
+                    }
 
                     return (
                       <div key={key} className="space-y-2">
