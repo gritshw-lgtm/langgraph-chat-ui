@@ -1,0 +1,27 @@
+branding:
+  appName: "GRIT에 챗봇입니다."
+  logoPath: "/logo.png"
+  logoWidth: 28
+  logoHeight: 28
+  description: "GRIT 챗봇에 무엇이든 그만물어보세요."
+  fullDescription: "/full-description.md"
+
+buttons:
+  enableFileUpload: true
+  chatInputPlaceholder: "궁금한 내용을 물어보세요."
+
+threads:
+  showHistory: true
+  enableDeletion: true
+  enableTitleEdit: true
+  autoGenerateTitles: true
+  sidebarOpenByDefault: true
+
+theme:
+  fontFamily: "serif"
+  fontSize: "large"
+  colorScheme: "light"
+
+ui:
+  autoCollapseToolCalls: false
+  chatWidth: "default"
